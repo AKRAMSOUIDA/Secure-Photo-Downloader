@@ -42,7 +42,7 @@ User → Cognito Hosted UI → Lambda Function → S3 Pre-signed URL → Secure 
 
 1. **Clone this repository**
    ```bash
-   git clone <your-repo-url>
+   git clone <this-repo-url>
    cd secure-photo-downloader
    ```
 
