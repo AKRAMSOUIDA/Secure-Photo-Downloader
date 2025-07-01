@@ -4,9 +4,15 @@ A secure, serverless photo download system using AWS Cognito authentication and 
 
 ## 🏗️ Architecture
 
+### System Overview
 ```
 User → Cognito Hosted UI → Lambda Function → S3 Pre-signed URL → Secure Download
 ```
+
+### Visual Architecture
+![Main Architecture](diagrams/main_architecture.png)
+
+*Complete system architecture showing all AWS components and data flow. [View all diagrams →](docs/DIAGRAMS.md)*
 
 ## 🔧 Components
 
@@ -90,7 +96,14 @@ secure-photo-downloader/
 ├── README.md                    # Project overview and quick start
 ├── docs/
 │   ├── DEPLOYMENT.md           # Detailed deployment guide
-│   └── ARCHITECTURE.md         # System architecture and design
+│   ├── ARCHITECTURE.md         # System architecture and design
+│   └── DIAGRAMS.md             # Architecture diagrams documentation
+├── diagrams/                   # Generated architecture diagrams
+│   ├── main_architecture.png   # Overall system architecture
+│   ├── security_architecture.png # Security layers and controls
+│   ├── data_flow.png           # Step-by-step process flow
+│   ├── deployment_architecture.png # Infrastructure deployment
+│   └── cost_optimization.png   # Cost management strategies
 ├── lambda/
 │   ├── auth-handler.py         # Lambda function for authentication
 │   └── requirements.txt        # Python dependencies
@@ -98,10 +111,11 @@ secure-photo-downloader/
 │   ├── auth-stack.yaml         # Cognito authentication resources
 │   ├── storage-stack.yaml      # S3 bucket and security policies
 │   └── compute-stack.yaml      # Lambda function and IAM roles
-└── scripts/
-    ├── deploy.sh               # Main deployment automation
-    ├── cleanup.sh              # Resource cleanup script
-    └── get-auth-url.sh         # Retrieve authentication URL
+├── scripts/
+│   ├── deploy.sh               # Main deployment automation
+│   ├── cleanup.sh              # Resource cleanup script
+│   └── get-auth-url.sh         # Retrieve authentication URL
+└── create_diagrams.py          # Generate architecture diagrams
 ```
 
 ## ⚙️ Configuration Options
