@@ -1,0 +1,214 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'S3 bucket and security policies for Secure Photo Downloader storage'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: secure-photo-downloader
+    Description: Name of the project (used for resource naming)
+  
+  CognitoRoleArn:
+    Type: String
+    Description: ARN of the Cognito authenticated role that needs S3 access
+
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+    Description: Environment name for resource tagging
+
+  EnableVersioning:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: Enable S3 bucket versioning for data protection
+
+  LogRetentionDays:
+    Type: Number
+    Default: 30
+    MinValue: 1
+    MaxValue: 365
+    Description: Number of days to retain CloudWatch logs
+
+Resources:
+  # S3 Bucket for storing photos and files
+  SecureStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-${AWS::AccountId}-${AWS::Region}-storage'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: !If [EnableVersioningCondition, Enabled, Suspended]
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteIncompleteMultipartUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+          - Id: TransitionToIA
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+          - Id: TransitionToGlacier
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 90
+                StorageClass: GLACIER
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, HEAD]
+            AllowedOrigins: ['*']
+            ExposedHeaders: [ETag]
+            MaxAge: 3000
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: SecureFileStorage
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # CloudWatch Log Group for S3 access logging
+  S3AccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/s3/${ProjectName}-access-logs'
+      RetentionInDays: !Ref LogRetentionDays
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # S3 Bucket Policy - comprehensive security policy
+  SecureStorageBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SecureStorageBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCognitoAuthenticatedUsers
+            Effect: Allow
+            Principal:
+              AWS: !Ref CognitoRoleArn
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+            Resource: !Sub '${SecureStorageBucket}/photos/*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'true'
+          - Sid: AllowCognitoListAccess
+            Effect: Allow
+            Principal:
+              AWS: !Ref CognitoRoleArn
+            Action:
+              - s3:ListBucket
+            Resource: !Ref SecureStorageBucket
+            Condition:
+              StringLike:
+                's3:prefix': 'photos/*'
+              Bool:
+                'aws:SecureTransport': 'true'
+          - Sid: DenyInsecureConnections
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !Sub '${SecureStorageBucket}/*'
+              - !Ref SecureStorageBucket
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
+          - Sid: DenyDirectPublicAccess
+            Effect: Deny
+            Principal: '*'
+            Action: 
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+            Resource: !Sub '${SecureStorageBucket}/*'
+            Condition:
+              StringNotEquals:
+                'aws:PrincipalArn': !Ref CognitoRoleArn
+
+  # CloudWatch Metric Filter for monitoring access patterns
+  S3AccessMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref S3AccessLogGroup
+      FilterPattern: '[timestamp, request_id, client_ip = "ERROR"]'
+      MetricTransformations:
+        - MetricNamespace: !Sub '${ProjectName}/S3'
+          MetricName: AccessErrors
+          MetricValue: '1'
+          DefaultValue: 0
+
+  # CloudWatch Alarm for unusual access patterns
+  S3AccessErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-S3-Access-Errors'
+      AlarmDescription: 'Alarm for S3 access errors'
+      MetricName: AccessErrors
+      Namespace: !Sub '${ProjectName}/S3'
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+Conditions:
+  EnableVersioningCondition: !Equals [!Ref EnableVersioning, 'true']
+
+Outputs:
+  BucketName:
+    Description: Name of the S3 bucket for secure storage
+    Value: !Ref SecureStorageBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketName'
+  
+  BucketArn:
+    Description: ARN of the S3 bucket
+    Value: !GetAtt SecureStorageBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketArn'
+  
+  BucketDomainName:
+    Description: Domain name of the S3 bucket
+    Value: !GetAtt SecureStorageBucket.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketDomainName'
+
+  BucketRegionalDomainName:
+    Description: Regional domain name of the S3 bucket
+    Value: !GetAtt SecureStorageBucket.RegionalDomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketRegionalDomainName'
+
+  LogGroupName:
+    Description: Name of the CloudWatch log group for S3 access logs
+    Value: !Ref S3AccessLogGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-LogGroupName'
+
+  LogGroupArn:
+    Description: ARN of the CloudWatch log group
+    Value: !GetAtt S3AccessLogGroup.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LogGroupArn'

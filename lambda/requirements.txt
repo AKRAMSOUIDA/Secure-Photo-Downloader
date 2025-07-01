@@ -1,0 +1,20 @@
+# AWS SDK for Python - Required for S3 and other AWS service interactions
+boto3>=1.26.0
+
+# Core AWS SDK dependencies (usually included in Lambda runtime but specified for completeness)
+botocore>=1.29.0
+
+# HTTP library for URL handling (usually included in Lambda runtime)
+urllib3>=1.26.0
+
+# Additional dependencies for enhanced functionality (optional)
+# Uncomment if you need additional features:
+
+# For JSON Web Token handling (if implementing custom JWT validation)
+# PyJWT>=2.6.0
+
+# For enhanced HTTP requests (if making external API calls)
+# requests>=2.28.0
+
+# For date/time manipulation (if implementing custom expiry logic)
+# python-dateutil>=2.8.0
