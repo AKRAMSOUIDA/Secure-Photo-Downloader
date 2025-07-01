@@ -112,10 +112,10 @@ secure-photo-downloader/
 │   ├── storage-stack.yaml      # S3 bucket and security policies
 │   └── compute-stack.yaml      # Lambda function and IAM roles
 ├── scripts/
-│   ├── deploy.sh               # Main deployment automation
-│   ├── cleanup.sh              # Resource cleanup script
-│   └── get-auth-url.sh         # Retrieve authentication URL
-└── create_diagrams.py          # Generate architecture diagrams
+   ├── deploy.sh               # Main deployment automation
+   ├── cleanup.sh              # Resource cleanup script
+   └── get-auth-url.sh         # Retrieve authentication URL
+
 ```
 
 ## ⚙️ Configuration Options
@@ -147,13 +147,6 @@ Easy to customize for your specific needs:
 - **Notifications**: Add email/SMS notifications
 - **Analytics**: Integrate with AWS analytics services
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## 📄 License
 
@@ -183,6 +176,6 @@ Perfect for:
 
 ---
 
-**Built with for secure, scalable photo sharing**
+**Built for secure, scalable photo sharing**
 
 
