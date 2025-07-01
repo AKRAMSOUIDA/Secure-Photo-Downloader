@@ -169,6 +169,6 @@ Perfect for:
 
 ---
 
-**Built with ❤️ for secure, scalable photo sharing**
+**Built with for secure, scalable photo sharing**
 
-*Powered by AWS Serverless Technologies*
+
